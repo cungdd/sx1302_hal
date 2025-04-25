@@ -15,10 +15,10 @@ License: Revised BSD License, see LICENSE.TXT file include in the project
 /* -------------------------------------------------------------------------- */
 /* --- DEPENDANCIES --------------------------------------------------------- */
 
-#define _GNU_SOURCE     /* needed for qsort_r to be defined */
-#include <stdlib.h>     /* qsort_r */
-#include <stdio.h>      /* printf, fprintf, snprintf, fopen, fputs */
-#include <string.h>     /* memset, memcpy */
+#define _GNU_SOURCE /* needed for qsort_r to be defined */
+#include <stdlib.h> /* qsort_r */
+#include <stdio.h>  /* printf, fprintf, snprintf, fopen, fputs */
+#include <string.h> /* memset, memcpy */
 #include <pthread.h>
 #include <assert.h>
 #include <math.h>
@@ -31,14 +31,14 @@ License: Revised BSD License, see LICENSE.TXT file include in the project
 
 /* -------------------------------------------------------------------------- */
 /* --- PRIVATE CONSTANTS & TYPES -------------------------------------------- */
-#define TX_START_DELAY          1500    /* microseconds */
-#define TX_MARGIN_DELAY         1000    /* Packet overlap margin in microseconds */
-#define TX_JIT_DELAY            40000   /* Pre-delay to program packet for TX in microseconds */
-#define TX_MAX_ADVANCE_DELAY    ((JIT_NUM_BEACON_IN_QUEUE + 1) * 128 * 1E6) /* Maximum advance delay accepted for a TX packet, compared to current time */
+#define TX_START_DELAY 1500                                              /* microseconds */
+#define TX_MARGIN_DELAY 1000                                             /* Packet overlap margin in microseconds */
+#define TX_JIT_DELAY 40000                                               /* Pre-delay to program packet for TX in microseconds */
+#define TX_MAX_ADVANCE_DELAY ((JIT_NUM_BEACON_IN_QUEUE + 1) * 128 * 1E6) /* Maximum advance delay accepted for a TX packet, compared to current time */
 
-#define BEACON_GUARD            3000000 /* Interval where no ping slot can be placed,
-                                            to ensure beacon can be sent */
-#define BEACON_RESERVED         2120000 /* Time on air of the beacon, with some margin */
+#define BEACON_GUARD 3000000    /* Interval where no ping slot can be placed, \
+                                    to ensure beacon can be sent */
+#define BEACON_RESERVED 2120000 /* Time on air of the beacon, with some margin */
 
 /* -------------------------------------------------------------------------- */
 /* --- PRIVATE VARIABLES (GLOBAL) ------------------------------------------- */
@@ -50,37 +50,41 @@ static pthread_mutex_t mx_jit_queue = PTHREAD_MUTEX_INITIALIZER; /* control acce
 /* -------------------------------------------------------------------------- */
 /* --- PUBLIC FUNCTIONS DEFINITION ----------------------------------------- */
 
-bool jit_queue_is_full(struct jit_queue_s *queue) {
+bool jit_queue_is_full(struct jit_queue_s *queue)
+{
     bool result;
 
     pthread_mutex_lock(&mx_jit_queue);
 
-    result = (queue->num_pkt == JIT_QUEUE_MAX)?true:false;
+    result = (queue->num_pkt == JIT_QUEUE_MAX) ? true : false;
 
     pthread_mutex_unlock(&mx_jit_queue);
 
     return result;
 }
 
-bool jit_queue_is_empty(struct jit_queue_s *queue) {
+bool jit_queue_is_empty(struct jit_queue_s *queue)
+{
     bool result;
 
     pthread_mutex_lock(&mx_jit_queue);
 
-    result = (queue->num_pkt == 0)?true:false;
+    result = (queue->num_pkt == 0) ? true : false;
 
     pthread_mutex_unlock(&mx_jit_queue);
 
     return result;
 }
 
-void jit_queue_init(struct jit_queue_s *queue) {
+void jit_queue_init(struct jit_queue_s *queue)
+{
     int i;
 
     pthread_mutex_lock(&mx_jit_queue);
 
     memset(queue, 0, sizeof(*queue));
-    for (i=0; i<JIT_QUEUE_MAX; i++) {
+    for (i = 0; i < JIT_QUEUE_MAX; i++)
+    {
         queue->nodes[i].pre_delay = 0;
         queue->nodes[i].post_delay = 0;
     }
@@ -88,44 +92,75 @@ void jit_queue_init(struct jit_queue_s *queue) {
     pthread_mutex_unlock(&mx_jit_queue);
 }
 
-int compare(const void *a, const void *b, void *arg)
+// int compare(const void *a, const void *b, void *arg)
+// {
+//     struct jit_node_s *p = (struct jit_node_s *)a;
+//     struct jit_node_s *q = (struct jit_node_s *)b;
+//     int *counter = (int *)arg;
+//     int p_count, q_count;
+
+//     p_count = p->pkt.count_us;
+//     q_count = q->pkt.count_us;
+
+//     if (p_count > q_count)
+//         *counter = *counter + 1;
+
+//     return p_count - q_count;
+// }
+
+// void jit_sort_queue(struct jit_queue_s *queue)
+// {
+//     int counter = 0;
+
+//     if (queue->num_pkt == 0)
+//     {
+//         return;
+//     }
+
+//     MSG_DEBUG(DEBUG_JIT, "sorting queue in ascending order packet timestamp - queue size:%u\n", queue->num_pkt);
+//     qsort_r(queue->nodes, queue->num_pkt, sizeof(queue->nodes[0]), compare, &counter);
+//     MSG_DEBUG(DEBUG_JIT, "sorting queue done - swapped:%d\n", counter);
+// }
+
+int compare(const void *a, const void *b)
 {
     struct jit_node_s *p = (struct jit_node_s *)a;
     struct jit_node_s *q = (struct jit_node_s *)b;
-    int *counter = (int *)arg;
     int p_count, q_count;
 
     p_count = p->pkt.count_us;
     q_count = q->pkt.count_us;
 
-    if (p_count > q_count)
-        *counter = *counter + 1;
-
     return p_count - q_count;
 }
 
-void jit_sort_queue(struct jit_queue_s *queue) {
-    int counter = 0;
-
-    if (queue->num_pkt == 0) {
+void jit_sort_queue(struct jit_queue_s *queue)
+{
+    if (queue->num_pkt == 0)
+    {
         return;
     }
 
     MSG_DEBUG(DEBUG_JIT, "sorting queue in ascending order packet timestamp - queue size:%u\n", queue->num_pkt);
-    qsort_r(queue->nodes, queue->num_pkt, sizeof(queue->nodes[0]), compare, &counter);
-    MSG_DEBUG(DEBUG_JIT, "sorting queue done - swapped:%d\n", counter);
+    qsort(queue->nodes, queue->num_pkt, sizeof(queue->nodes[0]), compare);
+    MSG_DEBUG(DEBUG_JIT, "sorting queue done - swapped\n");
 }
 
-bool jit_collision_test(uint32_t p1_count_us, uint32_t p1_pre_delay, uint32_t p1_post_delay, uint32_t p2_count_us, uint32_t p2_pre_delay, uint32_t p2_post_delay) {
+bool jit_collision_test(uint32_t p1_count_us, uint32_t p1_pre_delay, uint32_t p1_post_delay, uint32_t p2_count_us, uint32_t p2_pre_delay, uint32_t p2_post_delay)
+{
     if (((p1_count_us - p2_count_us) <= (p1_pre_delay + p2_post_delay + TX_MARGIN_DELAY)) ||
-        ((p2_count_us - p1_count_us) <= (p2_pre_delay + p1_post_delay + TX_MARGIN_DELAY))) {
+        ((p2_count_us - p1_count_us) <= (p2_pre_delay + p1_post_delay + TX_MARGIN_DELAY)))
+    {
         return true;
-    } else {
+    }
+    else
+    {
         return false;
     }
 }
 
-enum jit_error_e jit_enqueue(struct jit_queue_s *queue, uint32_t time_us, struct lgw_pkt_tx_s *packet, enum jit_pkt_type_e pkt_type) {
+enum jit_error_e jit_enqueue(struct jit_queue_s *queue, uint32_t time_us, struct lgw_pkt_tx_s *packet, enum jit_pkt_type_e pkt_type)
+{
     int i = 0;
     uint32_t packet_post_delay = 0;
     uint32_t packet_pre_delay = 0;
@@ -135,47 +170,54 @@ enum jit_error_e jit_enqueue(struct jit_queue_s *queue, uint32_t time_us, struct
 
     MSG_DEBUG(DEBUG_JIT, "Current concentrator time is %u, pkt_type=%d\n", time_us, pkt_type);
 
-    if (packet == NULL) {
+    if (packet == NULL)
+    {
         MSG_DEBUG(DEBUG_JIT_ERROR, "ERROR: invalid parameter\n");
         return JIT_ERROR_INVALID;
     }
 
-    if (jit_queue_is_full(queue)) {
+    if (jit_queue_is_full(queue))
+    {
         MSG_DEBUG(DEBUG_JIT_ERROR, "ERROR: cannot enqueue packet, JIT queue is full\n");
         return JIT_ERROR_FULL;
     }
 
     /* Compute packet pre/post delays depending on packet's type */
-    switch (pkt_type) {
-        case JIT_PKT_TYPE_DOWNLINK_CLASS_A:
-        case JIT_PKT_TYPE_DOWNLINK_CLASS_B:
-        case JIT_PKT_TYPE_DOWNLINK_CLASS_C:
-            packet_pre_delay = TX_START_DELAY + TX_JIT_DELAY;
-            packet_post_delay = lgw_time_on_air(packet) * 1000UL; /* in us */
-            break;
-        case JIT_PKT_TYPE_BEACON:
-            /* As defined in LoRaWAN spec */
-            packet_pre_delay = TX_START_DELAY + BEACON_GUARD + TX_JIT_DELAY;
-            packet_post_delay = BEACON_RESERVED;
-            break;
-        default:
-            break;
+    switch (pkt_type)
+    {
+    case JIT_PKT_TYPE_DOWNLINK_CLASS_A:
+    case JIT_PKT_TYPE_DOWNLINK_CLASS_B:
+    case JIT_PKT_TYPE_DOWNLINK_CLASS_C:
+        packet_pre_delay = TX_START_DELAY + TX_JIT_DELAY;
+        packet_post_delay = lgw_time_on_air(packet) * 1000UL; /* in us */
+        break;
+    case JIT_PKT_TYPE_BEACON:
+        /* As defined in LoRaWAN spec */
+        packet_pre_delay = TX_START_DELAY + BEACON_GUARD + TX_JIT_DELAY;
+        packet_post_delay = BEACON_RESERVED;
+        break;
+    default:
+        break;
     }
 
     pthread_mutex_lock(&mx_jit_queue);
 
     /* An immediate downlink becomes a timestamped downlink "ASAP" */
     /* Set the packet count_us to the first available slot */
-    if (pkt_type == JIT_PKT_TYPE_DOWNLINK_CLASS_C) {
+    if (pkt_type == JIT_PKT_TYPE_DOWNLINK_CLASS_C)
+    {
         /* change tx_mode to timestamped */
         packet->tx_mode = TIMESTAMPED;
 
         /* Search for the ASAP timestamp to be given to the packet */
         asap_count_us = time_us + 2 * TX_JIT_DELAY; /* margin */
-        if (queue->num_pkt == 0) {
+        if (queue->num_pkt == 0)
+        {
             /* If the jit queue is empty, we can insert this packet */
             MSG_DEBUG(DEBUG_JIT, "DEBUG: insert IMMEDIATE downlink, first in JiT queue (count_us=%u)\n", asap_count_us);
-        } else {
+        }
+        else
+        {
             /* Else we can try to insert it:
                 - ASAP meaning NOW + MARGIN
                 - at the last index of the queue
@@ -183,29 +225,41 @@ enum jit_error_e jit_enqueue(struct jit_queue_s *queue, uint32_t time_us, struct
             */
 
             /* First, try if the ASAP time collides with an already enqueued downlink */
-            for (i=0; i<queue->num_pkt; i++) {
-                if (jit_collision_test(asap_count_us, packet_pre_delay, packet_post_delay, queue->nodes[i].pkt.count_us, queue->nodes[i].pre_delay, queue->nodes[i].post_delay) == true) {
+            for (i = 0; i < queue->num_pkt; i++)
+            {
+                if (jit_collision_test(asap_count_us, packet_pre_delay, packet_post_delay, queue->nodes[i].pkt.count_us, queue->nodes[i].pre_delay, queue->nodes[i].post_delay) == true)
+                {
                     MSG_DEBUG(DEBUG_JIT, "DEBUG: cannot insert IMMEDIATE downlink at count_us=%u, collides with %u (index=%d)\n", asap_count_us, queue->nodes[i].pkt.count_us, i);
                     break;
                 }
             }
-            if (i == queue->num_pkt) {
+            if (i == queue->num_pkt)
+            {
                 /* No collision with ASAP time, we can insert it */
                 MSG_DEBUG(DEBUG_JIT, "DEBUG: insert IMMEDIATE downlink ASAP at %u (no collision)\n", asap_count_us);
-            } else {
+            }
+            else
+            {
                 /* Search for the best slot then */
-                for (i=0; i<queue->num_pkt; i++) {
+                for (i = 0; i < queue->num_pkt; i++)
+                {
                     asap_count_us = queue->nodes[i].pkt.count_us + queue->nodes[i].post_delay + packet_pre_delay + TX_JIT_DELAY + TX_MARGIN_DELAY;
-                    if (i == (queue->num_pkt - 1)) {
+                    if (i == (queue->num_pkt - 1))
+                    {
                         /* Last packet index, we can insert after this one */
                         MSG_DEBUG(DEBUG_JIT, "DEBUG: insert IMMEDIATE downlink, last in JiT queue (count_us=%u)\n", asap_count_us);
-                    } else {
+                    }
+                    else
+                    {
                         /* Check if packet can be inserted between this index and the next one */
-                        MSG_DEBUG(DEBUG_JIT, "DEBUG: try to insert IMMEDIATE downlink (count_us=%u) between index %d and index %d?\n", asap_count_us, i, i+1);
-                        if (jit_collision_test(asap_count_us, packet_pre_delay, packet_post_delay, queue->nodes[i+1].pkt.count_us, queue->nodes[i+1].pre_delay, queue->nodes[i+1].post_delay) == true) {
+                        MSG_DEBUG(DEBUG_JIT, "DEBUG: try to insert IMMEDIATE downlink (count_us=%u) between index %d and index %d?\n", asap_count_us, i, i + 1);
+                        if (jit_collision_test(asap_count_us, packet_pre_delay, packet_post_delay, queue->nodes[i + 1].pkt.count_us, queue->nodes[i + 1].pre_delay, queue->nodes[i + 1].post_delay) == true)
+                        {
                             MSG_DEBUG(DEBUG_JIT, "DEBUG: failed to insert IMMEDIATE downlink (count_us=%u), continue...\n", asap_count_us);
                             continue;
-                        } else {
+                        }
+                        else
+                        {
                             MSG_DEBUG(DEBUG_JIT, "DEBUG: insert IMMEDIATE downlink (count_us=%u)\n", asap_count_us);
                             break;
                         }
@@ -225,7 +279,8 @@ enum jit_error_e jit_enqueue(struct jit_queue_s *queue, uint32_t time_us, struct
      *  Warning: unsigned arithmetic (handle roll-over)
      *      t_packet < t_current + TX_START_DELAY + MARGIN
      */
-    if ((packet->count_us - time_us) <= (TX_START_DELAY + TX_MARGIN_DELAY + TX_JIT_DELAY)) {
+    if ((packet->count_us - time_us) <= (TX_START_DELAY + TX_MARGIN_DELAY + TX_JIT_DELAY))
+    {
         MSG_DEBUG(DEBUG_JIT_ERROR, "ERROR: Packet REJECTED, already too late to send it (current=%u, packet=%u, type=%d)\n", time_us, packet->count_us, pkt_type);
         pthread_mutex_unlock(&mx_jit_queue);
         return JIT_ERROR_TOO_LATE;
@@ -242,8 +297,10 @@ enum jit_error_e jit_enqueue(struct jit_queue_s *queue, uint32_t time_us, struct
      *  Warning: unsigned arithmetic (handle roll-over)
                 t_packet > t_current + TX_MAX_ADVANCE_DELAY
      */
-    if ((pkt_type == JIT_PKT_TYPE_DOWNLINK_CLASS_A) || (pkt_type == JIT_PKT_TYPE_DOWNLINK_CLASS_B)) {
-        if ((packet->count_us - time_us) > TX_MAX_ADVANCE_DELAY) {
+    if ((pkt_type == JIT_PKT_TYPE_DOWNLINK_CLASS_A) || (pkt_type == JIT_PKT_TYPE_DOWNLINK_CLASS_B))
+    {
+        if ((packet->count_us - time_us) > TX_MAX_ADVANCE_DELAY)
+        {
             MSG_DEBUG(DEBUG_JIT_ERROR, "ERROR: Packet REJECTED, timestamp seems wrong, too much in advance (current=%u, packet=%u, type=%d)\n", time_us, packet->count_us, pkt_type);
             pthread_mutex_unlock(&mx_jit_queue);
             return JIT_ERROR_TOO_EARLY;
@@ -255,11 +312,15 @@ enum jit_error_e jit_enqueue(struct jit_queue_s *queue, uint32_t time_us, struct
      *        - Valid for both Downlinks and beacon packets
      *        - Beacon guard can be ignored if we try to queue a Class A downlink
      */
-    for (i=0; i<queue->num_pkt; i++) {
+    for (i = 0; i < queue->num_pkt; i++)
+    {
         /* We ignore Beacon Guard for Class A/C downlinks */
-        if (((pkt_type == JIT_PKT_TYPE_DOWNLINK_CLASS_A) || (pkt_type == JIT_PKT_TYPE_DOWNLINK_CLASS_C)) && (queue->nodes[i].pkt_type == JIT_PKT_TYPE_BEACON)) {
+        if (((pkt_type == JIT_PKT_TYPE_DOWNLINK_CLASS_A) || (pkt_type == JIT_PKT_TYPE_DOWNLINK_CLASS_C)) && (queue->nodes[i].pkt_type == JIT_PKT_TYPE_BEACON))
+        {
             target_pre_delay = TX_START_DELAY;
-        } else {
+        }
+        else
+        {
             target_pre_delay = queue->nodes[i].pre_delay;
         }
 
@@ -268,25 +329,28 @@ enum jit_error_e jit_enqueue(struct jit_queue_s *queue, uint32_t time_us, struct
          *      t_packet_new - pre_delay_packet_new < t_packet_prev + post_delay_packet_prev (OVERLAP on post delay)
          *      t_packet_new + post_delay_packet_new > t_packet_prev - pre_delay_packet_prev (OVERLAP on pre delay)
          */
-        if (jit_collision_test(packet->count_us, packet_pre_delay, packet_post_delay, queue->nodes[i].pkt.count_us, target_pre_delay, queue->nodes[i].post_delay) == true) {
-            switch (queue->nodes[i].pkt_type) {
-                case JIT_PKT_TYPE_DOWNLINK_CLASS_A:
-                case JIT_PKT_TYPE_DOWNLINK_CLASS_B:
-                case JIT_PKT_TYPE_DOWNLINK_CLASS_C:
-                    MSG_DEBUG(DEBUG_JIT_ERROR, "ERROR: Packet (type=%d) REJECTED, collision with packet already programmed at %u (%u)\n", pkt_type, queue->nodes[i].pkt.count_us, packet->count_us);
-                    err_collision = JIT_ERROR_COLLISION_PACKET;
-                    break;
-                case JIT_PKT_TYPE_BEACON:
-                    if (pkt_type != JIT_PKT_TYPE_BEACON) {
-                        /* do not overload logs for beacon/beacon collision, as it is expected to happen with beacon pre-scheduling algorith used */
-                        MSG_DEBUG(DEBUG_JIT_ERROR, "ERROR: Packet (type=%d) REJECTED, collision with beacon already programmed at %u (%u)\n", pkt_type, queue->nodes[i].pkt.count_us, packet->count_us);
-                    }
-                    err_collision = JIT_ERROR_COLLISION_BEACON;
-                    break;
-                default:
-                    MSG("ERROR: Unknown packet type, should not occur, BUG?\n");
-                    assert(0);
-                    break;
+        if (jit_collision_test(packet->count_us, packet_pre_delay, packet_post_delay, queue->nodes[i].pkt.count_us, target_pre_delay, queue->nodes[i].post_delay) == true)
+        {
+            switch (queue->nodes[i].pkt_type)
+            {
+            case JIT_PKT_TYPE_DOWNLINK_CLASS_A:
+            case JIT_PKT_TYPE_DOWNLINK_CLASS_B:
+            case JIT_PKT_TYPE_DOWNLINK_CLASS_C:
+                MSG_DEBUG(DEBUG_JIT_ERROR, "ERROR: Packet (type=%d) REJECTED, collision with packet already programmed at %u (%u)\n", pkt_type, queue->nodes[i].pkt.count_us, packet->count_us);
+                err_collision = JIT_ERROR_COLLISION_PACKET;
+                break;
+            case JIT_PKT_TYPE_BEACON:
+                if (pkt_type != JIT_PKT_TYPE_BEACON)
+                {
+                    /* do not overload logs for beacon/beacon collision, as it is expected to happen with beacon pre-scheduling algorith used */
+                    MSG_DEBUG(DEBUG_JIT_ERROR, "ERROR: Packet (type=%d) REJECTED, collision with beacon already programmed at %u (%u)\n", pkt_type, queue->nodes[i].pkt.count_us, packet->count_us);
+                }
+                err_collision = JIT_ERROR_COLLISION_BEACON;
+                break;
+            default:
+                MSG("ERROR: Unknown packet type, should not occur, BUG?\n");
+                assert(0);
+                break;
             }
             pthread_mutex_unlock(&mx_jit_queue);
             return err_collision;
@@ -299,7 +363,8 @@ enum jit_error_e jit_enqueue(struct jit_queue_s *queue, uint32_t time_us, struct
     queue->nodes[queue->num_pkt].pre_delay = packet_pre_delay;
     queue->nodes[queue->num_pkt].post_delay = packet_post_delay;
     queue->nodes[queue->num_pkt].pkt_type = pkt_type;
-    if (pkt_type == JIT_PKT_TYPE_BEACON) {
+    if (pkt_type == JIT_PKT_TYPE_BEACON)
+    {
         queue->num_beacon++;
     }
     queue->num_pkt++;
@@ -316,18 +381,22 @@ enum jit_error_e jit_enqueue(struct jit_queue_s *queue, uint32_t time_us, struct
     return JIT_ERROR_OK;
 }
 
-enum jit_error_e jit_dequeue(struct jit_queue_s *queue, int index, struct lgw_pkt_tx_s *packet, enum jit_pkt_type_e *pkt_type) {
-    if (packet == NULL) {
+enum jit_error_e jit_dequeue(struct jit_queue_s *queue, int index, struct lgw_pkt_tx_s *packet, enum jit_pkt_type_e *pkt_type)
+{
+    if (packet == NULL)
+    {
         MSG("ERROR: invalid parameter\n");
         return JIT_ERROR_INVALID;
     }
 
-    if ((index < 0) || (index >= JIT_QUEUE_MAX)) {
+    if ((index < 0) || (index >= JIT_QUEUE_MAX))
+    {
         MSG("ERROR: invalid parameter\n");
         return JIT_ERROR_INVALID;
     }
 
-    if (jit_queue_is_empty(queue)) {
+    if (jit_queue_is_empty(queue))
+    {
         MSG("ERROR: cannot dequeue packet, JIT queue is empty\n");
         return JIT_ERROR_EMPTY;
     }
@@ -338,7 +407,8 @@ enum jit_error_e jit_dequeue(struct jit_queue_s *queue, int index, struct lgw_pk
     memcpy(packet, &(queue->nodes[index].pkt), sizeof(struct lgw_pkt_tx_s));
     queue->num_pkt--;
     *pkt_type = queue->nodes[index].pkt_type;
-    if (*pkt_type == JIT_PKT_TYPE_BEACON) {
+    if (*pkt_type == JIT_PKT_TYPE_BEACON)
+    {
         queue->num_beacon--;
         MSG_DEBUG(DEBUG_BEACON, "--- Beacon dequeued ---\n");
     }
@@ -360,23 +430,27 @@ enum jit_error_e jit_dequeue(struct jit_queue_s *queue, int index, struct lgw_pk
     return JIT_ERROR_OK;
 }
 
-enum jit_error_e jit_peek(struct jit_queue_s *queue, uint32_t time_us, int *pkt_idx) {
+enum jit_error_e jit_peek(struct jit_queue_s *queue, uint32_t time_us, int *pkt_idx)
+{
     /* Return index of node containing a packet inline with given time */
     int i = 0;
     int idx_highest_priority = -1;
-    if (pkt_idx == NULL) {
+    if (pkt_idx == NULL)
+    {
         MSG("ERROR: invalid parameter\n");
         return JIT_ERROR_INVALID;
     }
 
-    if (jit_queue_is_empty(queue)) {
+    if (jit_queue_is_empty(queue))
+    {
         return JIT_ERROR_EMPTY;
     }
 
     pthread_mutex_lock(&mx_jit_queue);
 
     /* Search for highest priority packet to be sent */
-    for (i=0; i<queue->num_pkt; i++) {
+    for (i = 0; i < queue->num_pkt; i++)
+    {
         /* First check if that packet is outdated:
          *  If a packet seems too much in advance, and was not rejected at enqueue time,
          *  it means that we missed it for peeking, we need to drop it
@@ -384,13 +458,17 @@ enum jit_error_e jit_peek(struct jit_queue_s *queue, uint32_t time_us, int *pkt_
          *  Warning: unsigned arithmetic
          *      t_packet > t_current + TX_MAX_ADVANCE_DELAY
          */
-        if ((queue->nodes[i].pkt.count_us - time_us) >= TX_MAX_ADVANCE_DELAY) {
+        if ((queue->nodes[i].pkt.count_us - time_us) >= TX_MAX_ADVANCE_DELAY)
+        {
             /* We drop the packet to avoid lock-up */
             queue->num_pkt--;
-            if (queue->nodes[i].pkt_type == JIT_PKT_TYPE_BEACON) {
+            if (queue->nodes[i].pkt_type == JIT_PKT_TYPE_BEACON)
+            {
                 queue->num_beacon--;
                 MSG("WARNING: --- Beacon dropped (current_time=%u, packet_time=%u) ---\n", time_us, queue->nodes[i].pkt.count_us);
-            } else {
+            }
+            else
+            {
                 MSG("WARNING: --- Packet dropped (current_time=%u, packet_time=%u) ---\n", time_us, queue->nodes[i].pkt.count_us);
             }
 
@@ -410,7 +488,8 @@ enum jit_error_e jit_peek(struct jit_queue_s *queue, uint32_t time_us, int *pkt_
          *  Warning: unsigned arithmetic (handle roll-over)
          *      t_packet < t_highest
          */
-        if ((idx_highest_priority == -1) || (((queue->nodes[i].pkt.count_us - time_us) < (queue->nodes[idx_highest_priority].pkt.count_us - time_us)))) {
+        if ((idx_highest_priority == -1) || (((queue->nodes[i].pkt.count_us - time_us) < (queue->nodes[idx_highest_priority].pkt.count_us - time_us))))
+        {
             idx_highest_priority = i;
         }
     }
@@ -419,11 +498,14 @@ enum jit_error_e jit_peek(struct jit_queue_s *queue, uint32_t time_us, int *pkt_
      *  Warning: unsigned arithmetic (handle roll-over)
      *      t_packet < t_current + TX_JIT_DELAY
      */
-    if ((queue->nodes[idx_highest_priority].pkt.count_us - time_us) < TX_JIT_DELAY) {
+    if ((queue->nodes[idx_highest_priority].pkt.count_us - time_us) < TX_JIT_DELAY)
+    {
         *pkt_idx = idx_highest_priority;
         MSG_DEBUG(DEBUG_JIT, "peek packet with count_us=%u at index %d\n",
-            queue->nodes[idx_highest_priority].pkt.count_us, idx_highest_priority);
-    } else {
+                  queue->nodes[idx_highest_priority].pkt.count_us, idx_highest_priority);
+    }
+    else
+    {
         *pkt_idx = -1;
     }
 
@@ -432,23 +514,28 @@ enum jit_error_e jit_peek(struct jit_queue_s *queue, uint32_t time_us, int *pkt_
     return JIT_ERROR_OK;
 }
 
-void jit_print_queue(struct jit_queue_s *queue, bool show_all, int debug_level) {
+void jit_print_queue(struct jit_queue_s *queue, bool show_all, int debug_level)
+{
     int i = 0;
     int loop_end;
 
-    if (jit_queue_is_empty(queue)) {
+    if (jit_queue_is_empty(queue))
+    {
         MSG_DEBUG(debug_level, "INFO: [jit] queue is empty\n");
-    } else {
+    }
+    else
+    {
         pthread_mutex_lock(&mx_jit_queue);
 
         MSG_DEBUG(debug_level, "INFO: [jit] queue contains %d packets:\n", queue->num_pkt);
         MSG_DEBUG(debug_level, "INFO: [jit] queue contains %d beacons:\n", queue->num_beacon);
         loop_end = (show_all == true) ? JIT_QUEUE_MAX : queue->num_pkt;
-        for (i=0; i<loop_end; i++) {
+        for (i = 0; i < loop_end; i++)
+        {
             MSG_DEBUG(debug_level, " - node[%d]: count_us=%u - type=%d\n",
-                        i,
-                        queue->nodes[i].pkt.count_us,
-                        queue->nodes[i].pkt_type);
+                      i,
+                      queue->nodes[i].pkt.count_us,
+                      queue->nodes[i].pkt_type);
         }
 
         pthread_mutex_unlock(&mx_jit_queue);
