@@ -288,25 +288,37 @@ static int remove_pkt(struct lgw_pkt_rx_s *p, uint8_t *nb_pkt, uint8_t pkt_index
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
-int compare_pkt_tmst(const void *a, const void *b, void *arg)
+// int compare_pkt_tmst(const void *a, const void *b, void *arg)
+// {
+//     struct lgw_pkt_rx_s *p = (struct lgw_pkt_rx_s *)a;
+//     struct lgw_pkt_rx_s *q = (struct lgw_pkt_rx_s *)b;
+//     int *counter = (int *)arg;
+//     int p_count, q_count;
+
+//     p_count = p->count_us;
+//     q_count = q->count_us;
+
+//     if (p_count > q_count)
+//     {
+//         *counter = *counter + 1;
+//     }
+
+//     return (p_count - q_count);
+// }
+
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+int compare_pkt_tmst(const void *a, const void *b)
 {
     struct lgw_pkt_rx_s *p = (struct lgw_pkt_rx_s *)a;
     struct lgw_pkt_rx_s *q = (struct lgw_pkt_rx_s *)b;
-    int *counter = (int *)arg;
     int p_count, q_count;
 
     p_count = p->count_us;
     q_count = q->count_us;
 
-    if (p_count > q_count)
-    {
-        *counter = *counter + 1;
-    }
-
     return (p_count - q_count);
 }
-
-/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 static int merge_packets(struct lgw_pkt_rx_s *p, uint8_t *nb_pkt)
 {
@@ -431,7 +443,8 @@ static int merge_packets(struct lgw_pkt_rx_s *p, uint8_t *nb_pkt)
     }
 
     /* Sort the packet array by ascending counter_us value */
-    qsort_r(p, cpt, sizeof(p[0]), compare_pkt_tmst, &counter_qsort_swap);
+    // qsort_r(p, cpt, sizeof(p[0]), compare_pkt_tmst, &counter_qsort_swap);
+    qsort(p, cpt, sizeof(p[0]), compare_pkt_tmst);
     DEBUG_PRINTF("%d elements swapped during sorting...\n", counter_qsort_swap);
 
     /* --------------------------------------------- */
