@@ -445,7 +445,7 @@ static int merge_packets(struct lgw_pkt_rx_s *p, uint8_t *nb_pkt)
     /* Sort the packet array by ascending counter_us value */
     // qsort_r(p, cpt, sizeof(p[0]), compare_pkt_tmst, &counter_qsort_swap);
     qsort(p, cpt, sizeof(p[0]), compare_pkt_tmst);
-    DEBUG_PRINTF("%d elements swapped during sorting...\n", counter_qsort_swap);
+    // DEBUG_PRINTF("%d elements swapped during sorting...\n", counter_qsort_swap);
 
     /* --------------------------------------------- */
     /* ---------- For Debug only - START ----------- */
