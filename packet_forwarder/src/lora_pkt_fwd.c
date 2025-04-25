@@ -2040,19 +2040,22 @@ int main(int argc, char **argv)
         MSG("ERROR: [main] impossible to create upstream thread\n");
         exit(EXIT_FAILURE);
     }
+
+    printf("DEBUG: ===> Step 2: After creating thread_up, before thread_down\n");
     i = pthread_create(&thrid_down, NULL, (void *(*)(void *))thread_down, NULL);
     if (i != 0)
     {
         MSG("ERROR: [main] impossible to create downstream thread\n");
         exit(EXIT_FAILURE);
     }
+    printf("DEBUG: ===> Step 3: After creating thread_down, before thread_jit\n");
     i = pthread_create(&thrid_jit, NULL, (void *(*)(void *))thread_jit, NULL);
     if (i != 0)
     {
         MSG("ERROR: [main] impossible to create JIT thread\n");
         exit(EXIT_FAILURE);
     }
-
+    printf("DEBUG: ===> Step 4: After creating thread_jit, before spectral scan thread\n");
     /* spawn thread for background spectral scan */
     if (spectral_scan_params.enable == true)
     {
@@ -2080,7 +2083,7 @@ int main(int argc, char **argv)
             exit(EXIT_FAILURE);
         }
     }
-
+    printf("DEBUG: ===> Step 5: Before signal handling\n");
     /* configure signal handling */
     sigemptyset(&sigact.sa_mask);
     sigact.sa_flags = 0;
@@ -2373,8 +2376,9 @@ int main(int argc, char **argv)
 
 void thread_up(void)
 {
-    int i, j, k;           /* loop variables */
-    unsigned pkt_in_dgram; /* nb on Lora packet in the current datagram */
+    printf("DEBUG: ===> Entering thread_up function\n"); // THÊM DÒNG NÀY
+    int i, j, k;                                         /* loop variables */
+    unsigned pkt_in_dgram;                               /* nb on Lora packet in the current datagram */
     char stat_timestamp[24];
     time_t t;
 
@@ -3057,7 +3061,8 @@ static int get_tx_gain_lut_index(uint8_t rf_chain, int8_t rf_power, uint8_t *lut
 
 void thread_down(void)
 {
-    int i; /* loop variables */
+    printf("DEBUG: ===> Entering thread_down function\n"); // THÊM DÒNG NÀY
+    int i;                                                 /* loop variables */
 
     /* configuration and metadata for an outbound packet */
     struct lgw_pkt_tx_s txpkt;
@@ -3898,6 +3903,7 @@ void print_tx_status(uint8_t tx_status)
 
 void thread_jit(void)
 {
+    printf("DEBUG: ===> Entering thread_jit function\n");
     int result = LGW_HAL_SUCCESS;
     struct lgw_pkt_tx_s pkt;
     int pkt_index = -1;
