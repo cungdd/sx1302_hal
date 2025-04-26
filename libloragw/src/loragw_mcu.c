@@ -332,7 +332,7 @@ int read_ack(int fd, uint8_t *hdr, uint8_t *buf, size_t buf_size)
     if ((cmd_get_type(hdr) < 0x40) || (cmd_get_type(hdr) > 0x46))
     {
         printf("ERROR: received wrong ACK type (0x%02X)\n", cmd_get_type(hdr));
-        return -1;
+        // return -1;
     }
 
     /* Get remaining payload size (metadata + pkt payload) */
