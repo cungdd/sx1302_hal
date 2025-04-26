@@ -328,7 +328,7 @@ static int merge_packets(struct lgw_pkt_rx_s *p, uint8_t *nb_pkt)
     int pkt_idx;
 #endif
     bool dup_restart = false;
-    int counter_qsort_swap = 0;
+    // int counter_qsort_swap = 0;
 
     /* Check input parameters */
     CHECK_NULL(p);
